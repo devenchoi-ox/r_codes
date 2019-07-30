@@ -102,12 +102,12 @@ names(deal_id) <- tolower(names(deal_id))
 # names(mstr_data) <- tolower(names(mstr_data))
 
 prior_four_weeks <- prior_four %>%
-                    group_by (advertiser) %>%
-                    summarize(advertiser_spend = sum(spend_usd),
-                              four_week_avg_advertiser_spend = sum(spend_usd) / 4,
-                              sold_impressions = sum(impressions)
-                              #spend_cpm = sum((spend_usd / impressions) * 1000)
-                              )
+    group_by (advertiser) %>%
+    summarize(advertiser_spend = sum(spend_usd),
+              sold_impressions = sum(impressions),
+              four_week_avg_advertiser_spend = sum(spend_usd) / 4
+              #spend_cpm = sum((spend_usd / impressions) * 1000)
+    )
 
 # assign dates
 prior1 <- format(Sys.Date() - 14, "%Y%m%d")
@@ -116,20 +116,24 @@ after1 <- format(Sys.Date() - 7, "%Y%m%d")
 after2 <- format(Sys.Date()- 1, "%Y%m%d")
 
 deal_id_data <- deal_id %>%
-                group_by (advertiser, deal_id) %>%
-                summarize(advertiser_spend = sum(spend_usd),
-                          sold_impressions = sum(impressions),
-                          #spend_cpm = sum((spend_usd / impressions) * 1000),
-                          prior_week_spend = sum(spend_usd[utc_date_sid >= prior1 & utc_date_sid <= prior2]),
-                          curr_week_spend = sum(spend_usd[utc_date_sid >= after1 & utc_date_sid <= after2]))
+    group_by (advertiser, deal_id) %>%
+    summarize(advertiser_spend = sum(spend_usd),
+              sold_impressions = sum(impressions),
+              #spend_cpm = sum((spend_usd / impressions) * 1000),
+              prior_week_spend = sum(spend_usd[utc_date_sid >= prior1 & utc_date_sid <= prior2]),
+              curr_week_spend = sum(spend_usd[utc_date_sid >= after1 & utc_date_sid <= after2]),
+              prior_week_imps = sum(impressions[utc_date_sid >= prior1 & utc_date_sid <= prior2]),
+              curr_week_imps = sum(impressions[utc_date_sid >= after1 & utc_date_sid <= after2]))
 
 rev_data <- deal_id %>%
-                group_by (advertiser) %>%
-                summarize(advertiser_spend = sum(spend_usd),
-                          sold_impressions = sum(impressions),
-                          #spend_cpm = sum((spend_usd / impressions) * 1000),
-                          prior_week_spend = sum(spend_usd[utc_date_sid >= prior1 & utc_date_sid <= prior2]),
-                          curr_week_spend = sum(spend_usd[utc_date_sid >= after1 & utc_date_sid <= after2]))
+    group_by (advertiser) %>%
+    summarize(advertiser_spend = sum(spend_usd),
+              sold_impressions = sum(impressions),
+              #spend_cpm = sum((spend_usd / impressions) * 1000),
+              prior_week_spend = sum(spend_usd[utc_date_sid >= prior1 & utc_date_sid <= prior2]),
+              curr_week_spend = sum(spend_usd[utc_date_sid >= after1 & utc_date_sid <= after2]),
+              prior_week_imps = sum(impressions[utc_date_sid >= prior1 & utc_date_sid <= prior2]),
+              curr_week_imps = sum(impressions[utc_date_sid >= after1 & utc_date_sid <= after2]))
 
 
 # remove NAs
@@ -139,32 +143,33 @@ rev_data <- na.omit(rev_data)
 
 # add in CPM
 prior_four_weeks$spend_cpm <- (prior_four_weeks$advertiser_spend / prior_four_weeks$sold_impressions) * 1000
-deal_id_data$spend_cpm <- (deal_id_data$advertiser_spend / deal_id_data$sold_impressions) * 1000
-rev_data$spend_cpm <- (rev_data$advertiser_spend / rev_data$sold_impressions) * 1000
+deal_id_data$spend_cpm <- (deal_id_data$curr_week_spend / deal_id_data$curr_week_imps) * 1000
+rev_data$spend_cpm <- (rev_data$curr_week_spend / rev_data$curr_week_imps) * 1000
 
 prior_four_weeks <- prior_four_weeks[,c(1:2,5,3:4)]
-deal_id_data <- deal_id_data[,c(1:4,7,5:6)]
-rev_data <- rev_data[,c(1:3,6,4:5)]
+
+deal_id_data <- deal_id_data[,c(1:2,9,5:8)]
+rev_data <- rev_data[,c(1:2,8,4:7)]
 
 # sort by spend
 prior_four_weeks <- prior_four_weeks[order(-prior_four_weeks$advertiser_spend),]
-deal_id_data <- deal_id_data[order(-deal_id_data$advertiser_spend),]
-rev_data <- rev_data[order(-rev_data$advertiser_spend),]
+deal_id_data <- deal_id_data[order(-deal_id_data$curr_week_spend ),]
+rev_data <- rev_data[order(-rev_data$curr_week_spend ),]
 
 # add in week over week change numbers + % of total
 deal_id_data$spend_chg_abs <- deal_id_data$curr_week_spend - deal_id_data$prior_week_spend
-deal_id_data$spend_chg_rel <- deal_id_data$spend_chg_abs / (abs(deal_id_data$spend_chg_abs) + deal_id_data$advertiser_spend)
+deal_id_data$spend_chg_rel <- deal_id_data$spend_chg_abs / (abs(deal_id_data$spend_chg_abs) + deal_id_data$curr_week_spend)
 
 rev_data$spend_chg_abs <- rev_data$curr_week_spend - rev_data$prior_week_spend
-rev_data$spend_chg_rel <- rev_data$spend_chg_abs / (abs(rev_data$spend_chg_abs) + rev_data$advertiser_spend)
-rev_data$percent_of_total <- rev_data$advertiser_spend / sum(rev_data$advertiser_spend)
+rev_data$spend_chg_rel <- rev_data$spend_chg_abs / (abs(rev_data$spend_chg_abs) + rev_data$curr_week_spend)
+rev_data$percent_of_total <- rev_data$curr_week_spend / sum(rev_data$curr_week_spend)
 
 # remove unnecessary columns
 deal_id_data$prior_week_spend <- NULL
-deal_id_data$curr_week_spend <- NULL
+deal_id_data$prior_week_imps  <- NULL
 
 rev_data$prior_week_spend <- NULL
-rev_data$curr_week_spend <- NULL
+rev_data$prior_week_imps  <- NULL
 
 #### create tables
 
@@ -175,10 +180,10 @@ table1 <- rev_data[1:5,]
 
 # join with avg 4 weeks data and remove unneeded columns
 table1 <- left_join(table1, prior_four_weeks, by = "advertiser")
-table1 <- table1[,c(1:7,10)]
+table1 <- table1[,c(1,3:8,12)]  
 
 # add in delta to average spend column
-table1$delta_vs_four_week_avg <- table1$advertiser_spend.x - table1$four_week_avg_advertiser_spend
+table1$delta_vs_four_week_avg <- table1$curr_week_spend - table1$four_week_avg_advertiser_spend
 
 # initialize data frame
 data1 <- setNames(data.frame(matrix(ncol = 1, nrow = 0)), c("top_deal_id"))
@@ -188,12 +193,12 @@ for(i in 1:5)
 {
     # store advertiser name in variable
     adv_name <- as.character(table1[i,1])
-
+    
     # filter for advertiser
     tmp_tbl <- filter(deal_id_data, advertiser == adv_name)
     
     # sort by top spend
-    tmp_tbl <- tmp_tbl[order(-tmp_tbl$advertiser_spend),]
+    tmp_tbl <- tmp_tbl[order(-tmp_tbl$curr_week_spend ),]
     
     # take deal id with top spend and store it
     a <- tmp_tbl[1,2]
@@ -211,10 +216,10 @@ table2 <- table2[1:5,]
 
 # join with avg 4 weeks data and remove unneeded columns
 table2 <- left_join(table2, prior_four_weeks, by = "advertiser")
-table2 <- table2[,c(1:7,10)]
+table2 <- table2[,c(1,3:8,12)]
 
 # add in delta to average spend column
-table2$delta_vs_four_week_avg <- table2$advertiser_spend.x - table2$four_week_avg_advertiser_spend
+table2$delta_vs_four_week_avg <- table2$curr_week_spend - table2$four_week_avg_advertiser_spend
 
 # initialize data frame
 data2 <- setNames(data.frame(matrix(ncol = 1, nrow = 0)), c("deal_id"))
@@ -228,10 +233,10 @@ for(i in 1:5)
     # filter for advertiser
     tmp_tbl <- filter(deal_id_data, advertiser == adv_name)
     
-    # sort by top spend
+    # sort by worst spend
     tmp_tbl <- tmp_tbl[order(tmp_tbl$spend_chg_abs),]
     
-    # take deal id with top spend and store it
+    # take deal id with worst spend and store it
     a <- tmp_tbl[1,2]
     
     data2 <- rbind(data2, a)
@@ -247,10 +252,10 @@ table3 <- table3[1:5,]
 
 # join with avg 4 weeks data and remove unneeded columns
 table3 <- left_join(table3, prior_four_weeks, by = "advertiser")
-table3 <- table3[,c(1:7,10)]
+table3 <- table3[,c(1,3:8,12)]
 
 # add in delta to average spend column
-table3$delta_vs_four_week_avg <- table3$advertiser_spend.x - table3$four_week_avg_advertiser_spend
+table3$delta_vs_four_week_avg <- table3$curr_week_spend - table3$four_week_avg_advertiser_spend
 
 # initialize data frame
 data3 <- setNames(data.frame(matrix(ncol = 1, nrow = 0)), c("deal_id"))
@@ -279,19 +284,19 @@ table3 <- cbind(table3, data3)
 
 # get advertisers with no spend last week
 table4 <- rev_data[order(-rev_data$spend_chg_abs),]
-table4$new_deals <- table4$spend_chg_abs - table4$advertiser_spend
+table4$new_deals <- table4$spend_chg_abs - table4$curr_week_spend 
 
-table4$flag <- ifelse(table4$advertiser_spend > 20 & table4$new_deals > -10, "true", "false")
+table4$flag <- ifelse(table4$curr_week_spend  > 20 & table4$new_deals > -10, "true", "false")
 table4 <- table4[table4$flag == "true",]
 
 table4 <- table4[1:5,]
 
 # join with avg 4 weeks data and remove unneeded columns
 table4 <- left_join(table4, prior_four_weeks, by = "advertiser")
-table4 <- table4[,c(1:7,12)]
+table4 <- table4[,c(1,3:8,14)]
 
 # add in delta to average spend column
-table4$delta_vs_four_week_avg <- table4$advertiser_spend.x - table4$four_week_avg_advertiser_spend
+table4$delta_vs_four_week_avg <- table4$curr_week_spend - table4$four_week_avg_advertiser_spend
 
 # initialize data frame
 data4 <- setNames(data.frame(matrix(ncol = 1, nrow = 0)), c("deal_id"))
@@ -318,25 +323,42 @@ table4 <- cbind(table4, data4)
 
 # formatting changes and clean up
 
+# remove cumulative advertiser spend, sold impressions
+table1$advertiser_spend.x <- NULL
+table1$sold_impressions.x <- NULL
+
+table2$advertiser_spend.x <- NULL
+table2$sold_impressions.x <- NULL
+
+table3$advertiser_spend.x <- NULL
+table3$sold_impressions.x <- NULL
+
+table4$advertiser_spend.x <- NULL
+table4$sold_impressions.x <- NULL
+
 # rename col names
-table1 <- rename(table1, advertiser_spend = advertiser_spend.x, sold_impressions = sold_impressions.x, spend_cpm = spend_cpm.x)
-table2 <- rename(table2, advertiser_spend = advertiser_spend.x, sold_impressions = sold_impressions.x, spend_cpm = spend_cpm.x)
-table3 <- rename(table3, advertiser_spend = advertiser_spend.x, sold_impressions = sold_impressions.x, spend_cpm = spend_cpm.x)
-table4 <- rename(table4, advertiser_spend = advertiser_spend.x, sold_impressions = sold_impressions.x, spend_cpm = spend_cpm.x)
+table1 <- rename(table1, advertiser_spend = curr_week_spend , sold_impressions = curr_week_imps, spend_cpm = spend_cpm.x)
+table2 <- rename(table2, advertiser_spend = curr_week_spend , sold_impressions = curr_week_imps, spend_cpm = spend_cpm.x)
+table3 <- rename(table3, advertiser_spend = curr_week_spend , sold_impressions = curr_week_imps, spend_cpm = spend_cpm.x)
+table4 <- rename(table4, advertiser_spend = curr_week_spend , sold_impressions = curr_week_imps, spend_cpm = spend_cpm.x)
 
 # adjust formatting
+table1 <- table1[,c(1,3:4,2,5:10)]
 table1[,c(6:7)] <- sapply(table1[,c(6:7)], function(x) percent(x, accuracy = .01))
 table1[,c(2,4:5,8:9)] <- sapply(table1[,c(2,4:5,8:9)], dollar)
 table1[,3] <- sapply(table1[,3], comma)
 
+table2 <- table2[,c(1,3:4,2,5:10)]
 table2[,c(6:7)] <- sapply(table2[,c(6:7)], function(x) percent(x, accuracy = .01))
 table2[,c(2,4:5,8:9)] <- sapply(table2[,c(2,4:5,8:9)], dollar)
 table2[,3] <- sapply(table2[,3], comma)
 
+table3 <- table3[,c(1,3:4,2,5:10)]
 table3[,c(6:7)] <- sapply(table3[,c(6:7)], function(x) percent(x, accuracy = .01))
 table3[,c(2,4:5,8:9)] <- sapply(table3[,c(2,4:5,8:9)], dollar)
 table3[,3] <- sapply(table3[,3], comma)
 
+table4 <- table4[,c(1,3:4,2,5:10)]
 table4[,c(6:7)] <- sapply(table4[,c(6:7)], function(x) percent(x, accuracy = .01))
 table4[,c(2,4:5,8:9)] <- sapply(table4[,c(2,4:5,8:9)], dollar)
 table4[,3] <- sapply(table4[,3], comma)
@@ -352,25 +374,29 @@ html_body <- paste0("<p><i><b> Top Revenue Generating TE/PMP Advertisers </i></b
                     "<p><i><b> Best WoW Performing TE/PMP Advertisers </i></b></p>", table3_html, "<p><i><b> New Deals/Turned On Brands </i></b></p>", table4_html)
 
 
-write.csv(table1, "C:/Users/deven.choi/Desktop/top_revenue.csv", row.names = F)
-write.csv(table2, "C:/Users/deven.choi/Desktop/worst_wow.csv", row.names = F)
-write.csv(table3, "C:/Users/deven.choi/Desktop/best_wow.csv", row.names = F)
-write.csv(table4, "C:/Users/deven.choi/Desktop/new_deals.csv", row.names = F)
+write.csv(table1, "~/r_files/pmp_dash/top_revenue.csv", row.names = F)
+write.csv(table2, "~/r_files/pmp_dash/worst_wow.csv", row.names = F)
+write.csv(table3, "~/r_files/pmp_dash/best_wow.csv", row.names = F)
+write.csv(table4, "~/r_files/pmp_dash/new_deals.csv", row.names = F)
+
+write.csv(prior_four_weeks, "~/r_files/pmp_dash/prior_four_weeks.csv", row.names = F)
+write.csv(deal_id_data, "~/r_files/pmp_dash/deal_id_data.csv", row.names = F)
+write.csv(rev_data, "~/r_files/pmp_dash/rev_data.csv", row.names = F)
 
 # send out email
 # tmpdir <-  "C:/Users/deven.choi/Documents/"
 # tmpdir <- gsub("\\\\", "/", tmpdir)
 
 send.mail(from = "Deven Choi <deven.choi@openx.com>",
-          to =  c("deven.choi@openx.com", "eric.silverstein@openx.com"),
+          to =  c("deven.choi@openx.com", "eric.silverstein@openx.com", "john.sattari@openx.com", "usbuyerdev@openx.com",
+                  "tish.whitcraft@openx.c"),
           subject = paste0("PMP Dash ", Sys.Date()),
           body = html_body,
           html = TRUE,
           smtp = list(host.name = "smtp.gmail.com", port = 465,
                       ssl=TRUE, user.name = "deven.choi@openx.com",
-                      passwd = "$Sparky24!"),
+                      passwd = "password"),
           authenticate = TRUE,
           send = TRUE
 )  
 
-#rm(list=ls())
