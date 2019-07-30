@@ -337,10 +337,10 @@ table4$advertiser_spend.x <- NULL
 table4$sold_impressions.x <- NULL
 
 # rename col names
-table1 <- rename(table1, advertiser_spend = curr_week_spend , sold_impressions = curr_week_imps, spend_cpm = spend_cpm.x)
-table2 <- rename(table2, advertiser_spend = curr_week_spend , sold_impressions = curr_week_imps, spend_cpm = spend_cpm.x)
-table3 <- rename(table3, advertiser_spend = curr_week_spend , sold_impressions = curr_week_imps, spend_cpm = spend_cpm.x)
-table4 <- rename(table4, advertiser_spend = curr_week_spend , sold_impressions = curr_week_imps, spend_cpm = spend_cpm.x)
+table1 <- rename(table1, "Advertiser | " = advertiser, "CPM | " = spend_cpm.x, "Spend | " = curr_week_spend, "Sold Impressions | " = curr_week_imps, "Spend Change - Absolute | " = spend_chg_abs, "Spend Change - Relative | " = spend_chg_rel, "Percent of Total | " = percent_of_total, "Four Week Avg Advertiser Spend | " = four_week_avg_advertiser_spend, "Delta vs. Four Week Avg | " = delta_vs_four_week_avg, "Deal ID" = deal_id)
+table2 <- rename(table2, "Advertiser | " = advertiser, "CPM | " = spend_cpm.x, "Spend | " = curr_week_spend, "Sold Impressions | " = curr_week_imps, "Spend Change - Absolute | " = spend_chg_abs, "Spend Change - Relative | " = spend_chg_rel, "Percent of Total | " = percent_of_total, "Four Week Avg Advertiser Spend | " = four_week_avg_advertiser_spend, "Delta vs. Four Week Avg | " = delta_vs_four_week_avg, "Deal ID" = deal_id)
+table3 <- rename(table3, "Advertiser | " = advertiser, "CPM | " = spend_cpm.x, "Spend | " = curr_week_spend, "Sold Impressions | " = curr_week_imps, "Spend Change - Absolute | " = spend_chg_abs, "Spend Change - Relative | " = spend_chg_rel, "Percent of Total | " = percent_of_total, "Four Week Avg Advertiser Spend | " = four_week_avg_advertiser_spend, "Delta vs. Four Week Avg | " = delta_vs_four_week_avg, "Deal ID" = deal_id)
+table4 <- rename(table4, "Advertiser | " = advertiser, "CPM | " = spend_cpm.x, "Spend | " = curr_week_spend, "Sold Impressions | " = curr_week_imps, "Spend Change - Absolute | " = spend_chg_abs, "Spend Change - Relative | " = spend_chg_rel, "Percent of Total | " = percent_of_total, "Four Week Avg Advertiser Spend | " = four_week_avg_advertiser_spend, "Delta vs. Four Week Avg | " = delta_vs_four_week_avg, "Deal ID" = deal_id)
 
 # adjust formatting
 table1 <- table1[,c(1,3:4,2,5:10)]
@@ -389,7 +389,7 @@ write.csv(rev_data, "~/r_files/pmp_dash/rev_data.csv", row.names = F)
 
 send.mail(from = "Deven Choi <deven.choi@openx.com>",
           to =  c("deven.choi@openx.com", "eric.silverstein@openx.com", "john.sattari@openx.com", "usbuyerdev@openx.com",
-                  "tish.whitcraft@openx.c"),
+                  "tish.whitcraft@openx.com"),
           subject = paste0("PMP Dash ", Sys.Date()),
           body = html_body,
           html = TRUE,
